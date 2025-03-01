@@ -26,25 +26,16 @@ const Index = () => {
 
   // Calculate topic sentiment stats
   const calculateTopicSentiments = useCallback((articlesData: NewsArticle[]): TopicSentiment => {
-    if (!selectedTopic) {
-      // Calculate overall sentiment
-      return {
-        topic: "All Topics",
-        positive: articlesData.filter((a) => a.sentiment === "positive").length,
-        neutral: articlesData.filter((a) => a.sentiment === "neutral").length,
-        negative: articlesData.filter((a) => a.sentiment === "negative").length,
-        total: articlesData.length,
-      };
-    }
+    const filteredByTopic = selectedTopic 
+      ? articlesData.filter(a => a.topic === selectedTopic)
+      : articlesData;
     
-    // Calculate selected topic sentiment
-    const topicArticles = articlesData.filter(a => a.topic === selectedTopic);
     return {
-      topic: selectedTopic,
-      positive: topicArticles.filter((a) => a.sentiment === "positive").length,
-      neutral: topicArticles.filter((a) => a.sentiment === "neutral").length,
-      negative: topicArticles.filter((a) => a.sentiment === "negative").length,
-      total: topicArticles.length,
+      topic: selectedTopic || "All Topics",
+      positive: filteredByTopic.filter((a) => a.sentiment === "positive").length,
+      neutral: filteredByTopic.filter((a) => a.sentiment === "neutral").length,
+      negative: filteredByTopic.filter((a) => a.sentiment === "negative").length,
+      total: filteredByTopic.length,
     };
   }, [selectedTopic]);
 
@@ -115,11 +106,13 @@ const Index = () => {
 
   // Filter articles by topic and sentiment
   useEffect(() => {
+    console.log("Filtering articles. Selected topic:", selectedTopic, "Selected sentiment:", selectedSentiment);
+    
     let filtered = [...articles];
     
     // Filter by topic
     if (selectedTopic) {
-      filtered = filtered.filter((article) => article.topic.toLowerCase() === selectedTopic.toLowerCase());
+      filtered = filtered.filter((article) => article.topic === selectedTopic);
     }
     
     // Filter by sentiment
@@ -132,6 +125,8 @@ const Index = () => {
     // Calculate and update sentiment data
     const sentimentData = calculateTopicSentiments(articles);
     setTopicSentiment(sentimentData);
+    
+    console.log("Filtered articles:", filtered.length);
   }, [articles, selectedTopic, selectedSentiment, calculateTopicSentiments]);
 
   const handleTopicSelect = (topic: string | null) => {
@@ -151,7 +146,7 @@ const Index = () => {
 
   // Skeleton loader for articles
   const ArticleSkeleton = () => (
-    <div className="rounded-xl overflow-hidden bg-card border animate-pulse">
+    <div className="rounded-xl overflow-hidden bg-card border">
       <div className="h-48 bg-muted"></div>
       <div className="p-4 space-y-3">
         <div className="h-6 bg-muted rounded"></div>

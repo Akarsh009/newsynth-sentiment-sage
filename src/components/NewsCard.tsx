@@ -30,7 +30,7 @@ const NewsCard = ({ article, className }: NewsCardProps) => {
     )}>
       <div className="relative h-48 overflow-hidden">
         <div className={cn(
-          "absolute inset-0 bg-muted animate-pulse",
+          "absolute inset-0 bg-muted",
           imageLoaded ? "opacity-0" : "opacity-100"
         )}></div>
         <img

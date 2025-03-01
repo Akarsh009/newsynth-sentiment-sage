@@ -116,36 +116,6 @@ const Index = () => {
       
       <main className="flex-1">
         <div className="container mx-auto px-4 py-8">
-          {/* Hero Section */}
-          <section className="mb-12 rounded-2xl bg-gradient-to-r from-slate-950 to-slate-800 p-8 text-white">
-            <div className="max-w-3xl animate-fade-in">
-              <h1 className="text-3xl md:text-4xl font-bold mb-3">
-                NewSynth Sentiment Sage
-              </h1>
-              <p className="text-lg opacity-90 mb-6">
-                Discover the latest news with AI-powered sentiment analysis that helps
-                you understand the emotional tone behind each story.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <SentimentTag
-                  sentiment="positive"
-                  size="lg"
-                  className="!bg-positive/20 !border-positive/40"
-                />
-                <SentimentTag
-                  sentiment="neutral"
-                  size="lg"
-                  className="!bg-neutral/20 !border-neutral/40"
-                />
-                <SentimentTag
-                  sentiment="negative"
-                  size="lg"
-                  className="!bg-negative/20 !border-negative/40"
-                />
-              </div>
-            </div>
-          </section>
-          
           {/* Filters Section */}
           <section className="mb-8 animate-slide-up">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 py-4">
@@ -292,7 +262,7 @@ const Index = () => {
       <footer className="bg-card border-t mt-12">
         <div className="container mx-auto px-4 py-6 text-center text-muted-foreground text-sm">
           <p>
-            © {new Date().getFullYear()} NewSynth Sentiment Sage. All rights reserved.
+            © {new Date().getFullYear()} NewSense. All rights reserved.
           </p>
         </div>
       </footer>

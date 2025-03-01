@@ -34,7 +34,7 @@ const Header = () => {
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-semibold">N</span>
           </div>
-          <h1 className="text-xl font-semibold">NewSynth</h1>
+          <h1 className="text-xl font-semibold">NewSense</h1>
         </div>
         
         <div className="flex items-center space-x-4">

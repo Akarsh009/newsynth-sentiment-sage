@@ -26,6 +26,7 @@ const TopicFilter = ({
             ? "bg-primary text-primary-foreground border-primary"
             : "bg-transparent text-muted-foreground border-border"
         )}
+        aria-pressed={selectedTopic === null}
       >
         All
       </button>
@@ -41,8 +42,9 @@ const TopicFilter = ({
               ? "bg-primary text-primary-foreground border-primary"
               : "bg-transparent text-muted-foreground border-border"
           )}
+          aria-pressed={selectedTopic === topic}
         >
-          {topic}
+          {topic.charAt(0).toUpperCase() + topic.slice(1)}
         </button>
       ))}
     </div>

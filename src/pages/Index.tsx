@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import TopicFilter from "@/components/TopicFilter";
 import NewsGrid from "@/components/NewsGrid";
 import SentimentChart from "@/components/SentimentChart";
-import { topics, topicSentiments, NewsArticle, SentimentType, TopicSentiment } from "@/utils/mockData";
+import { topics, NewsArticle, SentimentType, TopicSentiment } from "@/utils/mockData";
 import { Filter, ThumbsUp, Minus, ThumbsDown, RefreshCw } from "lucide-react";
 import { fetchAllNews } from "@/services/newsService";
 
@@ -48,7 +48,7 @@ const Index = () => {
     };
   }, [selectedTopic]);
 
-  // Fetch articles from the API
+  // Fetch articles from the API and scrapers
   const fetchArticles = useCallback(async (showToast = true) => {
     try {
       setIsRefreshing(true);
@@ -61,14 +61,14 @@ const Index = () => {
         if (showToast) {
           toast({
             title: "News Updated",
-            description: "Latest articles have been loaded",
+            description: `Loaded ${newsArticles.length} latest articles`,
             duration: 3000,
           });
         }
       } else {
         toast({
           title: "Warning",
-          description: "No articles found or API error occurred",
+          description: "No articles found or API error occurred. Using backup data.",
           variant: "destructive",
           duration: 5000,
         });
@@ -95,6 +95,7 @@ const Index = () => {
 
   // Set up automatic refresh timer
   useEffect(() => {
+    console.log("Setting up news refresh timer");
     // Initial fetch
     fetchArticles(false);
     
@@ -118,7 +119,7 @@ const Index = () => {
     
     // Filter by topic
     if (selectedTopic) {
-      filtered = filtered.filter((article) => article.topic === selectedTopic);
+      filtered = filtered.filter((article) => article.topic.toLowerCase() === selectedTopic.toLowerCase());
     }
     
     // Filter by sentiment
@@ -134,10 +135,12 @@ const Index = () => {
   }, [articles, selectedTopic, selectedSentiment, calculateTopicSentiments]);
 
   const handleTopicSelect = (topic: string | null) => {
+    console.log("Selected topic:", topic);
     setSelectedTopic(topic);
   };
 
   const handleSentimentSelect = (sentiment: SentimentType | null) => {
+    console.log("Selected sentiment:", sentiment);
     setSelectedSentiment(sentiment);
   };
 
@@ -204,7 +207,7 @@ const Index = () => {
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm text-muted-foreground mr-1 flex items-center gap-1.5">
                   <Filter className="w-4 h-4" />
                   <span>Sentiment:</span>
@@ -330,8 +333,14 @@ const Index = () => {
               <div className="text-center py-12">
                 <h3 className="text-xl font-medium mb-2">No articles found</h3>
                 <p className="text-muted-foreground">
-                  Try changing your filter settings
+                  Try changing your filter settings or refreshing the page
                 </p>
+                <button
+                  onClick={handleRefresh}
+                  className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  Refresh News
+                </button>
               </div>
             )}
           </section>

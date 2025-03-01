@@ -1,13 +1,16 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import TopicFilter from "@/components/TopicFilter";
 import NewsGrid from "@/components/NewsGrid";
 import SentimentChart from "@/components/SentimentChart";
-import SentimentTag from "@/components/SentimentTag";
-import { mockArticles, topics, topicSentiments, NewsArticle, SentimentType, TopicSentiment } from "@/utils/mockData";
-import { Filter, ThumbsUp, Minus, ThumbsDown } from "lucide-react";
+import { topics, topicSentiments, NewsArticle, SentimentType, TopicSentiment } from "@/utils/mockData";
+import { Filter, ThumbsUp, Minus, ThumbsDown, RefreshCw } from "lucide-react";
+import { fetchAllNews } from "@/services/newsService";
+
+// Refresh interval in milliseconds (5 minutes)
+const REFRESH_INTERVAL = 5 * 60 * 1000;
 
 const Index = () => {
   const { toast } = useToast();
@@ -17,25 +20,97 @@ const Index = () => {
   const [selectedSentiment, setSelectedSentiment] = useState<SentimentType | null>(null);
   const [topicSentiment, setTopicSentiment] = useState<TopicSentiment | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const refreshTimerRef = useRef<number | null>(null);
 
-  // Fetch articles (simulated)
-  useEffect(() => {
-    const fetchArticles = async () => {
-      setLoading(true);
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setArticles(mockArticles);
-      setLoading(false);
-      
-      toast({
-        title: "News Updated",
-        description: "Latest articles have been loaded",
-        duration: 3000,
-      });
-    };
+  // Calculate topic sentiment stats
+  const calculateTopicSentiments = useCallback((articlesData: NewsArticle[]): TopicSentiment => {
+    if (!selectedTopic) {
+      // Calculate overall sentiment
+      return {
+        topic: "All Topics",
+        positive: articlesData.filter((a) => a.sentiment === "positive").length,
+        neutral: articlesData.filter((a) => a.sentiment === "neutral").length,
+        negative: articlesData.filter((a) => a.sentiment === "negative").length,
+        total: articlesData.length,
+      };
+    }
     
-    fetchArticles();
+    // Calculate selected topic sentiment
+    const topicArticles = articlesData.filter(a => a.topic === selectedTopic);
+    return {
+      topic: selectedTopic,
+      positive: topicArticles.filter((a) => a.sentiment === "positive").length,
+      neutral: topicArticles.filter((a) => a.sentiment === "neutral").length,
+      negative: topicArticles.filter((a) => a.sentiment === "negative").length,
+      total: topicArticles.length,
+    };
+  }, [selectedTopic]);
+
+  // Fetch articles from the API
+  const fetchArticles = useCallback(async (showToast = true) => {
+    try {
+      setIsRefreshing(true);
+      const newsArticles = await fetchAllNews();
+      
+      if (newsArticles.length > 0) {
+        setArticles(newsArticles);
+        setLastUpdated(new Date());
+        
+        if (showToast) {
+          toast({
+            title: "News Updated",
+            description: "Latest articles have been loaded",
+            duration: 3000,
+          });
+        }
+      } else {
+        toast({
+          title: "Warning",
+          description: "No articles found or API error occurred",
+          variant: "destructive",
+          duration: 5000,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching news:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch news articles",
+        variant: "destructive",
+        duration: 5000,
+      });
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
   }, [toast]);
+
+  // Manually refresh articles
+  const handleRefresh = () => {
+    setLoading(true);
+    fetchArticles(true);
+  };
+
+  // Set up automatic refresh timer
+  useEffect(() => {
+    // Initial fetch
+    fetchArticles(false);
+    
+    // Set up interval for refreshing
+    refreshTimerRef.current = window.setInterval(() => {
+      console.log("Auto-refreshing news articles...");
+      fetchArticles(false);
+    }, REFRESH_INTERVAL);
+    
+    // Clean up timer on unmount
+    return () => {
+      if (refreshTimerRef.current !== null) {
+        clearInterval(refreshTimerRef.current);
+      }
+    };
+  }, [fetchArticles]);
 
   // Filter articles by topic and sentiment
   useEffect(() => {
@@ -44,33 +119,19 @@ const Index = () => {
     // Filter by topic
     if (selectedTopic) {
       filtered = filtered.filter((article) => article.topic === selectedTopic);
-      
-      // Find topic sentiment data
-      const topicData = topicSentiments.find(
-        (item) => item.topic === selectedTopic
-      );
-      setTopicSentiment(topicData || null);
-    } else {
-      // Calculate overall sentiment data
-      const overallSentiment = {
-        topic: "All Topics",
-        positive: articles.filter((a) => a.sentiment === "positive").length,
-        neutral: articles.filter((a) => a.sentiment === "neutral").length,
-        negative: articles.filter((a) => a.sentiment === "negative").length,
-        total: articles.length,
-      };
-      setTopicSentiment(overallSentiment);
     }
     
     // Filter by sentiment
     if (selectedSentiment) {
-      filtered = filtered.filter(
-        (article) => article.sentiment === selectedSentiment
-      );
+      filtered = filtered.filter((article) => article.sentiment === selectedSentiment);
     }
     
     setFilteredArticles(filtered);
-  }, [articles, selectedTopic, selectedSentiment]);
+    
+    // Calculate and update sentiment data
+    const sentimentData = calculateTopicSentiments(articles);
+    setTopicSentiment(sentimentData);
+  }, [articles, selectedTopic, selectedSentiment, calculateTopicSentiments]);
 
   const handleTopicSelect = (topic: string | null) => {
     setSelectedTopic(topic);
@@ -78,6 +139,11 @@ const Index = () => {
 
   const handleSentimentSelect = (sentiment: SentimentType | null) => {
     setSelectedSentiment(sentiment);
+  };
+
+  // Format last updated time
+  const formatLastUpdated = () => {
+    return lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   // Skeleton loader for articles
@@ -119,11 +185,24 @@ const Index = () => {
           {/* Filters Section */}
           <section className="mb-8 animate-slide-up">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 py-4">
-              <TopicFilter
-                topics={topics}
-                selectedTopic={selectedTopic}
-                onSelectTopic={handleTopicSelect}
-              />
+              <div className="flex flex-col gap-2">
+                <TopicFilter
+                  topics={topics}
+                  selectedTopic={selectedTopic}
+                  onSelectTopic={handleTopicSelect}
+                />
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <span>Last updated: {formatLastUpdated()}</span>
+                  <button 
+                    onClick={handleRefresh} 
+                    disabled={isRefreshing}
+                    className="ml-2 p-1 rounded-full hover:bg-secondary transition-colors disabled:opacity-50"
+                    aria-label="Refresh news"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+              </div>
               
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground mr-1 flex items-center gap-1.5">

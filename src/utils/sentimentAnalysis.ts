@@ -1,93 +1,86 @@
 
-import { SentimentType } from './mockData';
+// A simplified sentiment analysis implementation
+// In a real application, this would connect to a proper NLP service
 
-// This is a placeholder for a real sentiment analysis algorithm
-// In a real application, you would use a machine learning model or API
+import { SentimentType } from "./mockData";
 
-export const analyzeSentiment = (text: string): { type: SentimentType; score: number } => {
-  // Count positive and negative words (very simplified approach)
-  const positiveWords = ['good', 'great', 'excellent', 'positive', 'happy', 'success', 'benefit', 'improved', 'gain', 'progress'];
-  const negativeWords = ['bad', 'poor', 'terrible', 'negative', 'sad', 'failure', 'issue', 'problem', 'challenge', 'decline'];
+// Simple positive and negative word lists
+const positiveWords = [
+  "good", "great", "excellent", "amazing", "wonderful", "fantastic", 
+  "positive", "success", "successful", "win", "winning", "happy", 
+  "joy", "joyful", "benefit", "beneficial", "impressive", "inspire",
+  "innovative", "breakthrough", "progress", "improve", "improvement",
+  "grow", "growth", "opportunity", "hope", "hopeful", "celebrate"
+];
+
+const negativeWords = [
+  "bad", "terrible", "awful", "poor", "negative", "failure", "fail",
+  "lose", "losing", "unhappy", "sad", "sorrow", "sorrowful", "loss",
+  "damage", "hurt", "harmful", "decline", "decrease", "worsen",
+  "worse", "worst", "concern", "concerns", "concerning", "problem",
+  "trouble", "crisis", "danger", "dangerous", "conflict", "war",
+  "death", "die", "disaster", "emergency", "fear", "afraid"
+];
+
+export function analyzeTextSentiment(text: string): SentimentType {
+  if (!text) return "neutral";
   
   const lowercaseText = text.toLowerCase();
   
+  // Count positive and negative words
   let positiveCount = 0;
   let negativeCount = 0;
   
-  positiveWords.forEach(word => {
+  // Check for positive words
+  for (const word of positiveWords) {
     const regex = new RegExp(`\\b${word}\\b`, 'g');
     const matches = lowercaseText.match(regex);
     if (matches) {
       positiveCount += matches.length;
     }
-  });
+  }
   
-  negativeWords.forEach(word => {
+  // Check for negative words
+  for (const word of negativeWords) {
     const regex = new RegExp(`\\b${word}\\b`, 'g');
     const matches = lowercaseText.match(regex);
     if (matches) {
       negativeCount += matches.length;
     }
-  });
+  }
   
-  // Calculate sentiment score (0-1)
-  const totalWords = text.split(/\s+/).length;
-  const positiveScore = positiveCount / totalWords;
-  const negativeScore = negativeCount / totalWords;
-  const netScore = 0.5 + (positiveScore - negativeScore) * 5; // Scale to 0-1 range
-  const clampedScore = Math.max(0, Math.min(1, netScore));
-  
-  // Determine sentiment type
-  let type: SentimentType;
-  if (clampedScore > 0.6) {
-    type = 'positive';
-  } else if (clampedScore < 0.4) {
-    type = 'negative';
+  // Determine sentiment based on word counts
+  if (positiveCount > negativeCount + 1) {
+    return "positive";
+  } else if (negativeCount > positiveCount + 1) {
+    return "negative";
   } else {
-    type = 'neutral';
+    return "neutral";
   }
-  
-  return { type, score: clampedScore };
-};
+}
 
-// Function to get color based on sentiment
-export const getSentimentColor = (sentiment: SentimentType): string => {
+export function getSentimentLabel(sentiment: SentimentType): string {
   switch (sentiment) {
-    case 'positive':
-      return 'positive';
-    case 'neutral':
-      return 'neutral';
-    case 'negative':
-      return 'negative';
+    case "positive":
+      return "Positive";
+    case "neutral":
+      return "Neutral";
+    case "negative":
+      return "Negative";
     default:
-      return 'neutral';
+      return "Unknown";
   }
-};
+}
 
-// Function to get icon based on sentiment
-export const getSentimentIcon = (sentiment: SentimentType): string => {
+export function getSentimentColor(sentiment: SentimentType): string {
   switch (sentiment) {
-    case 'positive':
-      return 'thumbs-up';
-    case 'neutral':
-      return 'minus';
-    case 'negative':
-      return 'thumbs-down';
+    case "positive":
+      return "positive";
+    case "neutral":
+      return "neutral";
+    case "negative":
+      return "negative";
     default:
-      return 'minus';
+      return "neutral";
   }
-};
-
-// Function to get label based on sentiment
-export const getSentimentLabel = (sentiment: SentimentType): string => {
-  switch (sentiment) {
-    case 'positive':
-      return 'Positive';
-    case 'neutral':
-      return 'Neutral';
-    case 'negative':
-      return 'Negative';
-    default:
-      return 'Unknown';
-  }
-};
+}

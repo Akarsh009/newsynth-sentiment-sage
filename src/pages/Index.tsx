@@ -46,13 +46,18 @@ const Index = () => {
       const newsArticles = await fetchAllNews();
       
       if (newsArticles.length > 0) {
-        setArticles(newsArticles);
+        // Sort articles by publishedAt date (newest first)
+        const sortedArticles = [...newsArticles].sort((a, b) => {
+          return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+        });
+        
+        setArticles(sortedArticles);
         setLastUpdated(new Date());
         
         if (showToast) {
           toast({
             title: "News Updated",
-            description: `Loaded ${newsArticles.length} latest articles`,
+            description: `Loaded ${sortedArticles.length} latest articles`,
             duration: 3000,
           });
         }
@@ -121,6 +126,11 @@ const Index = () => {
     if (selectedSentiment) {
       filtered = filtered.filter((article) => article.sentiment === selectedSentiment);
     }
+    
+    // Ensure articles are sorted by date (newest first)
+    filtered = filtered.sort((a, b) => {
+      return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+    });
     
     setFilteredArticles(filtered);
     

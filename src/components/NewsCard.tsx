@@ -25,8 +25,43 @@ const NewsCard = ({ article, className }: NewsCardProps) => {
 
   // Generate a placeholder image based on topic
   const getPlaceholderImage = () => {
-    return `https://placehold.co/600x400?text=${article.topic.charAt(0).toUpperCase() + article.topic.slice(1)}+News`;
+    const topicName = article.topic.charAt(0).toUpperCase() + article.topic.slice(1);
+    
+    // Source-specific placeholder images
+    if (article.source.includes('timesofindia')) {
+      return 'https://static.toiimg.com/photo/msid-74814898/74814898.jpg'; 
+    } else if (article.source.includes('ndtv')) {
+      return 'https://drop.ndtv.com/homepage/images/ndtvlogo23march.png';
+    } else if (article.source.includes('hindustantimes')) {
+      return 'https://www.hindustantimes.com/images/app-images/ht-logo.png';
+    } else if (article.source.includes('indianexpress')) {
+      return 'https://images.indianexpress.com/2022/03/indian-express-logo.jpg';
+    } else if (article.source.includes('economictimes')) {
+      return 'https://img.etimg.com/photo/msid-74451948,quality-100/et-logo.jpg';
+    } else if (article.source.includes('nytimes')) {
+      return 'https://static01.nyt.com/newsgraphics/images/icons/defaultPromoCrop.png';
+    } else if (article.source.includes('npr')) {
+      return 'https://media.npr.org/assets/img/2019/06/17/npr-logo_rgb_primary-e1533569536588-b65c752984de1baac36c16d6a4f4009afb38a8b3.jpg';
+    }
+    
+    return `https://placehold.co/600x400?text=${topicName}+News`;
   };
+
+  // Check if the URL is valid
+  const isValidImageUrl = (url: string): boolean => {
+    if (!url) return false;
+    if (!url.startsWith('http')) return false;
+    
+    // Filter out some problematic image URLs that frequently fail
+    if (url.includes('rss.cnn.com')) return false;
+    if (url.includes('feeds.feedburner.com')) return false;
+    if (url.includes('feedproxy.google.com')) return false;
+    
+    return true;
+  };
+
+  // Initial image source - use placeholder immediately if URL is invalid
+  const initialImageSrc = isValidImageUrl(article.imageUrl) ? article.imageUrl : getPlaceholderImage();
 
   return (
     <div className={cn(
@@ -37,7 +72,7 @@ const NewsCard = ({ article, className }: NewsCardProps) => {
         <div className="bg-muted h-full w-full absolute inset-0"></div>
         {!imageError ? (
           <img
-            src={article.imageUrl}
+            src={initialImageSrc}
             alt={article.title}
             className="w-full h-full object-cover absolute inset-0"
             loading="lazy"

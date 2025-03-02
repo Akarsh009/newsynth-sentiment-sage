@@ -16,11 +16,15 @@ const RSS_FEEDS = [
   { url: 'https://news.google.com/rss', topic: 'general' },
   // Indian news sources
   { url: 'https://timesofindia.indiatimes.com/rssfeedstopstories.cms', topic: 'india' },
-  { url: 'https://www.ndtv.com/rss/india', topic: 'india' },
-  { url: 'https://www.hindustantimes.com/feeds/rss/india/rssfeed.xml', topic: 'india' },
-  { url: 'https://indianexpress.com/feed/', topic: 'india' },
+  { url: 'https://timesofindia.indiatimes.com/rssfeeds/296589292.cms', topic: 'india' }, // India section
   { url: 'https://economictimes.indiatimes.com/rssfeedsdefault.cms', topic: 'business' },
-  { url: 'https://sports.ndtv.com/rss/all', topic: 'sports' }
+  { url: 'https://feeds.feedburner.com/ndtvnews-india-news', topic: 'india' }, // Alternative NDTV feed
+  { url: 'https://feeds.feedburner.com/ndtvnews-latest', topic: 'india' }, // NDTV latest
+  { url: 'https://indianexpress.com/feed/', topic: 'india' },
+  { url: 'https://www.thehindu.com/news/national/?service=rss', topic: 'india' }, // The Hindu
+  { url: 'https://www.news18.com/rss/india.xml', topic: 'india' }, // News18
+  { url: 'https://zeenews.india.com/rss/india-national-news.xml', topic: 'india' }, // Zee News
+  { url: 'https://www.tribuneindia.com/rss/feed?catId=50', topic: 'india' } // The Tribune
 ];
 
 // Parse RSS feed
@@ -56,59 +60,101 @@ async function parseRSSFeed(feed: { url: string, topic: string }): Promise<NewsA
       // Improved content handling
       let content = description;
       // Try different content selectors that various RSS feeds might use
-      const contentNode = item.querySelector('content\\:encoded') || 
-                          item.querySelector('encoded') || 
-                          item.querySelector('[nodeName="content:encoded"]') ||
-                          item.querySelector('content');
+      const contentEncoded = item.querySelector('content\\:encoded') || 
+                           item.querySelector('encoded') || 
+                           item.querySelector('content');
       
-      if (contentNode && contentNode.textContent) {
-        content = contentNode.textContent;
+      if (contentEncoded && contentEncoded.textContent) {
+        content = contentEncoded.textContent;
       }
       
       const link = item.querySelector('link')?.textContent || '#';
       const pubDate = item.querySelector('pubDate')?.textContent || new Date().toISOString();
-      const source = new URL(feed.url).hostname
+      
+      // Clean source name for display
+      let source = new URL(feed.url).hostname
         .replace('www.', '')
         .replace('rss.', '')
         .replace('feeds.', '');
+        
+      // Handle special cases for source names
+      if (source.includes('feedburner')) {
+        // Extract real source from URL or feed title
+        const feedTitle = xmlDoc.querySelector('channel > title')?.textContent || '';
+        if (feedTitle.includes('NDTV')) {
+          source = 'ndtv.com';
+        } else {
+          source = feedTitle.split(' - ')[0].toLowerCase();
+        }
+      }
       
       // Improved image URL extraction
-      let imageUrl = 'https://placehold.co/600x400?text=News+Image';
+      let imageUrl = '';
       
-      // Try to extract image from content
-      const contentStr = content.toString();
-      const imgMatch = contentStr.match(/<img[^>]+src="([^">]+)"/);
-      if (imgMatch && imgMatch[1]) {
-        imageUrl = imgMatch[1];
-      } else {
-        // Try to extract image from media:content
-        const mediaContent = item.querySelector('media\\:content, media\\:thumbnail, content, thumbnail');
-        if (mediaContent && mediaContent.getAttribute('url')) {
-          imageUrl = mediaContent.getAttribute('url') || imageUrl;
+      // Try to extract image from media:content
+      const mediaContent = item.querySelector('media\\:content');
+      if (mediaContent && mediaContent.getAttribute('url')) {
+        imageUrl = mediaContent.getAttribute('url') || '';
+      }
+      
+      // Try to extract image from media:thumbnail
+      if (!imageUrl) {
+        const mediaThumbnail = item.querySelector('media\\:thumbnail');
+        if (mediaThumbnail && mediaThumbnail.getAttribute('url')) {
+          imageUrl = mediaThumbnail.getAttribute('url') || '';
         }
-        
-        // Try to extract image from enclosure
+      }
+      
+      // Try to extract image from enclosure
+      if (!imageUrl) {
         const enclosure = item.querySelector('enclosure');
         if (enclosure && enclosure.getAttribute('url')) {
           const type = enclosure.getAttribute('type') || '';
-          if (type.startsWith('image/') || link.endsWith('.jpg') || link.endsWith('.png') || link.endsWith('.jpeg')) {
-            imageUrl = enclosure.getAttribute('url') || imageUrl;
+          if (type.startsWith('image/') || 
+              enclosure.getAttribute('url')?.endsWith('.jpg') || 
+              enclosure.getAttribute('url')?.endsWith('.png') || 
+              enclosure.getAttribute('url')?.endsWith('.jpeg')) {
+            imageUrl = enclosure.getAttribute('url') || '';
           }
         }
       }
       
-      // Use source-specific default images when no image is found
-      if (imageUrl === 'https://placehold.co/600x400?text=News+Image') {
+      // Try to extract image from content
+      if (!imageUrl && content) {
+        const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (imgMatch && imgMatch[1]) {
+          imageUrl = imgMatch[1];
+        }
+      }
+      
+      // Try to extract image from description if it's HTML
+      if (!imageUrl && description && description.includes('<img')) {
+        const imgMatch = description.match(/<img[^>]+src=["']([^"']+)["']/i);
+        if (imgMatch && imgMatch[1]) {
+          imageUrl = imgMatch[1];
+        }
+      }
+      
+      // Source-specific default images when no image is found
+      if (!imageUrl || !imageUrl.startsWith('http')) {
         if (source.includes('timesofindia')) {
           imageUrl = 'https://static.toiimg.com/photo/msid-74814898/74814898.jpg'; 
         } else if (source.includes('ndtv')) {
           imageUrl = 'https://drop.ndtv.com/homepage/images/ndtvlogo23march.png';
-        } else if (source.includes('hindustantimes')) {
+        } else if (source.includes('hindustantimes') || source.includes('tribuneindia')) {
           imageUrl = 'https://www.hindustantimes.com/images/app-images/ht-logo.png';
         } else if (source.includes('indianexpress')) {
           imageUrl = 'https://images.indianexpress.com/2022/03/indian-express-logo.jpg';
         } else if (source.includes('economictimes')) {
           imageUrl = 'https://img.etimg.com/photo/msid-74451948,quality-100/et-logo.jpg';
+        } else if (source.includes('thehindu')) {
+          imageUrl = 'https://www.thehindu.com/theme/images/th-online/thehindu-logo.svg';
+        } else if (source.includes('news18')) {
+          imageUrl = 'https://images.news18.com/static_news18/pix/ibnlive/news18/news18-logo-sharing.png';
+        } else if (source.includes('zeenews')) {
+          imageUrl = 'https://english.cdn.zeenews.com/images/logo/placeholder_image.jpg';
+        } else {
+          imageUrl = `https://placehold.co/600x400?text=${feed.topic.charAt(0).toUpperCase() + feed.topic.slice(1)}+News`;
         }
       }
       
@@ -140,9 +186,7 @@ async function parseRSSFeed(feed: { url: string, topic: string }): Promise<NewsA
   }
 }
 
-/**
- * Fetch news from multiple RSS feeds
- */
+// Fetch news from multiple RSS feeds
 export async function fetchScrapedNews(): Promise<NewsArticle[]> {
   try {
     console.log('Fetching scraped news from RSS feeds...');

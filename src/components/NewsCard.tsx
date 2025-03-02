@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { Calendar, Globe } from "lucide-react";
 import { NewsArticle } from "@/utils/mockData";
 import SentimentTag from "./SentimentTag";
@@ -27,7 +26,7 @@ const NewsCard = ({ article, className }: NewsCardProps) => {
       className
     )}>
       <div className="relative h-48 overflow-hidden">
-        <div className="bg-muted h-full w-full"></div>
+        <div className="bg-muted h-full w-full absolute inset-0"></div>
         <img
           src={article.imageUrl}
           alt={article.title}
@@ -36,7 +35,7 @@ const NewsCard = ({ article, className }: NewsCardProps) => {
         />
         <div className="absolute top-3 left-3">
           <div className="px-2.5 py-1 rounded-full bg-primary/80 backdrop-blur-sm text-xs font-medium text-primary-foreground">
-            {article.topic}
+            {article.topic.charAt(0).toUpperCase() + article.topic.slice(1)}
           </div>
         </div>
         <div className="absolute top-3 right-3">

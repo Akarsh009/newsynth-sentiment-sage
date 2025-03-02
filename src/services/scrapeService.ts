@@ -45,7 +45,18 @@ async function parseRSSFeed(feed: { url: string, topic: string }): Promise<NewsA
       
       const title = item.querySelector('title')?.textContent || 'No title';
       const description = item.querySelector('description')?.textContent || 'No description available';
-      const content = item.querySelector('content:encoded')?.textContent || description;
+      
+      // Fixed: Properly handle content - avoid using invalid selector
+      let content = description;
+      // Try different content selectors that various RSS feeds might use
+      const contentNode = item.querySelector('content\\:encoded') || 
+                          item.querySelector('encoded') || 
+                          item.querySelector('[nodeName="content:encoded"]');
+      
+      if (contentNode && contentNode.textContent) {
+        content = contentNode.textContent;
+      }
+      
       const link = item.querySelector('link')?.textContent || '#';
       const pubDate = item.querySelector('pubDate')?.textContent || new Date().toISOString();
       const source = new URL(feed.url).hostname
@@ -89,7 +100,7 @@ async function parseRSSFeed(feed: { url: string, topic: string }): Promise<NewsA
         url: link,
         imageUrl,
         publishedAt: new Date(pubDate).toISOString(),
-        topic: feed.topic,
+        topic: feed.topic.toLowerCase(), // Ensure lowercase for consistent filtering
         sentiment,
         author: source,
         sentimentScore: sentiment === 'positive' ? 0.8 : sentiment === 'negative' ? 0.2 : 0.5

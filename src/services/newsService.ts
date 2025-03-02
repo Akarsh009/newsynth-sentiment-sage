@@ -25,7 +25,7 @@ interface NewsApiResponse {
 }
 
 // Topics to fetch news for - make sure these are lowercase
-const TOPICS = ["business", "technology", "health", "science", "sports", "entertainment", "politics", "general"];
+const TOPICS = ["business", "technology", "health", "science", "sports", "entertainment", "politics", "general", "india"];
 
 // NewsAPI key and endpoint
 const NEWS_API_KEY = "1e8fa1048e3c4ff9b1edf1aff8365c04";
@@ -38,46 +38,106 @@ async function fetchNewsApi(): Promise<NewsArticle[]> {
   try {
     console.log("Fetching news from NewsAPI...");
     
-    // Collect all promises for different topics
-    const promises = TOPICS.map(async (topic) => {
-      try {
-        const response = await fetch(
-          `${NEWS_API_ENDPOINT}?category=${topic}&language=en&pageSize=10&apiKey=${NEWS_API_KEY}`
-        );
-        
-        if (!response.ok) {
-          console.error(`NewsAPI error for topic ${topic}:`, response.statusText);
+    // Collect all promises for different topics and countries
+    const promises = [
+      // Fetch by topic categories
+      ...TOPICS.filter(topic => topic !== "india").map(async (topic) => {
+        try {
+          const response = await fetch(
+            `${NEWS_API_ENDPOINT}?category=${topic}&language=en&pageSize=10&apiKey=${NEWS_API_KEY}`
+          );
+          
+          if (!response.ok) {
+            console.error(`NewsAPI error for topic ${topic}:`, response.statusText);
+            return [];
+          }
+          
+          const data: NewsApiResponse = await response.json();
+          
+          // Convert NewsAPI articles to our format with sentiment analysis
+          return data.articles.map((article): NewsArticle => {
+            // Analyze sentiment
+            const text = `${article.title} ${article.description || ''}`;
+            const sentiment = analyzeTextSentiment(text) as SentimentType;
+            
+            // Fallback image handling
+            let imageUrl = article.urlToImage || `https://placehold.co/600x400?text=${topic}+News`;
+            
+            // Ensure image URL is valid
+            if (imageUrl && !imageUrl.startsWith('http')) {
+              imageUrl = `https://placehold.co/600x400?text=${topic}+News`;
+            }
+            
+            return {
+              id: `newsapi-${topic}-${Date.now()}-${article.url}`,
+              title: article.title,
+              description: article.description || 'No description available',
+              content: article.content || article.description || 'No content available',
+              source: article.source.name,
+              author: article.author || article.source.name,
+              url: article.url,
+              imageUrl,
+              publishedAt: article.publishedAt,
+              topic: topic.toLowerCase(), // Ensure lowercase topics
+              sentiment,
+              sentimentScore: sentiment === 'positive' ? 0.8 : sentiment === 'negative' ? 0.2 : 0.5
+            };
+          });
+        } catch (error) {
+          console.error(`Error fetching news for topic ${topic}:`, error);
           return [];
         }
-        
-        const data: NewsApiResponse = await response.json();
-        
-        // Convert NewsAPI articles to our format with sentiment analysis
-        return data.articles.map((article): NewsArticle => {
-          // Analyze sentiment
-          const text = `${article.title} ${article.description || ''}`;
-          const sentiment = analyzeTextSentiment(text) as SentimentType;
+      }),
+      
+      // Special fetch for India news
+      (async () => {
+        try {
+          const response = await fetch(
+            `${NEWS_API_ENDPOINT}?country=in&pageSize=15&apiKey=${NEWS_API_KEY}`
+          );
           
-          return {
-            id: `newsapi-${topic}-${Date.now()}-${article.url}`,
-            title: article.title,
-            description: article.description || 'No description available',
-            content: article.content || article.description || 'No content available',
-            source: article.source.name,
-            author: article.author || article.source.name,
-            url: article.url,
-            imageUrl: article.urlToImage || `https://placehold.co/600x400?text=${topic}+News`,
-            publishedAt: article.publishedAt,
-            topic: topic.toLowerCase(), // Ensure lowercase topics
-            sentiment,
-            sentimentScore: sentiment === 'positive' ? 0.8 : sentiment === 'negative' ? 0.2 : 0.5
-          };
-        });
-      } catch (error) {
-        console.error(`Error fetching news for topic ${topic}:`, error);
-        return [];
-      }
-    });
+          if (!response.ok) {
+            console.error(`NewsAPI error for India news:`, response.statusText);
+            return [];
+          }
+          
+          const data: NewsApiResponse = await response.json();
+          
+          // Convert NewsAPI articles to our format with sentiment analysis
+          return data.articles.map((article): NewsArticle => {
+            // Analyze sentiment
+            const text = `${article.title} ${article.description || ''}`;
+            const sentiment = analyzeTextSentiment(text) as SentimentType;
+            
+            // Fallback image handling
+            let imageUrl = article.urlToImage || `https://placehold.co/600x400?text=India+News`;
+            
+            // Ensure image URL is valid
+            if (imageUrl && !imageUrl.startsWith('http')) {
+              imageUrl = `https://placehold.co/600x400?text=India+News`;
+            }
+            
+            return {
+              id: `newsapi-india-${Date.now()}-${article.url}`,
+              title: article.title,
+              description: article.description || 'No description available',
+              content: article.content || article.description || 'No content available',
+              source: article.source.name,
+              author: article.author || article.source.name,
+              url: article.url,
+              imageUrl,
+              publishedAt: article.publishedAt,
+              topic: "india", // Assign india topic
+              sentiment,
+              sentimentScore: sentiment === 'positive' ? 0.8 : sentiment === 'negative' ? 0.2 : 0.5
+            };
+          });
+        } catch (error) {
+          console.error(`Error fetching news for India:`, error);
+          return [];
+        }
+      })()
+    ];
     
     // Wait for all requests to complete
     const topicArticles = await Promise.all(promises);
@@ -149,7 +209,7 @@ export async function fetchAllNews(): Promise<NewsArticle[]> {
  */
 function getMockArticles(): NewsArticle[] {
   // Make sure these topics match the ones used in filtering (all lowercase)
-  const topics = ["technology", "business", "science", "politics", "sports", "health"];
+  const topics = ["technology", "business", "science", "politics", "sports", "health", "india"];
   const sentiments: SentimentType[] = ["positive", "neutral", "negative"];
   
   return Array.from({ length: 12 }, (_, i) => {

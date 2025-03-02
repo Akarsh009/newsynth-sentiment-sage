@@ -2,7 +2,7 @@
 import { NewsArticle, SentimentType } from "@/utils/mockData";
 import { analyzeTextSentiment } from "@/utils/sentimentAnalysis";
 
-// List of RSS feeds to scrape
+// List of RSS feeds to scrape, adding more Indian news sources
 const RSS_FEEDS = [
   { url: 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml', topic: 'world' },
   { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml', topic: 'technology' },
@@ -13,7 +13,14 @@ const RSS_FEEDS = [
   { url: 'https://www.espn.com/espn/rss/news', topic: 'sports' },
   { url: 'https://www.theverge.com/rss/index.xml', topic: 'technology' },
   { url: 'https://lifehacker.com/rss', topic: 'lifestyle' },
-  { url: 'https://news.google.com/rss', topic: 'general' }
+  { url: 'https://news.google.com/rss', topic: 'general' },
+  // Indian news sources
+  { url: 'https://timesofindia.indiatimes.com/rssfeedstopstories.cms', topic: 'india' },
+  { url: 'https://www.ndtv.com/rss/india', topic: 'india' },
+  { url: 'https://www.hindustantimes.com/feeds/rss/india/rssfeed.xml', topic: 'india' },
+  { url: 'https://indianexpress.com/feed/', topic: 'india' },
+  { url: 'https://economictimes.indiatimes.com/rssfeedsdefault.cms', topic: 'business' },
+  { url: 'https://sports.ndtv.com/rss/all', topic: 'sports' }
 ];
 
 // Parse RSS feed
@@ -46,12 +53,13 @@ async function parseRSSFeed(feed: { url: string, topic: string }): Promise<NewsA
       const title = item.querySelector('title')?.textContent || 'No title';
       const description = item.querySelector('description')?.textContent || 'No description available';
       
-      // Fixed: Properly handle content - avoid using invalid selector
+      // Improved content handling
       let content = description;
       // Try different content selectors that various RSS feeds might use
       const contentNode = item.querySelector('content\\:encoded') || 
                           item.querySelector('encoded') || 
-                          item.querySelector('[nodeName="content:encoded"]');
+                          item.querySelector('[nodeName="content:encoded"]') ||
+                          item.querySelector('content');
       
       if (contentNode && contentNode.textContent) {
         content = contentNode.textContent;
@@ -64,7 +72,7 @@ async function parseRSSFeed(feed: { url: string, topic: string }): Promise<NewsA
         .replace('rss.', '')
         .replace('feeds.', '');
       
-      // Find an image URL in the content if available
+      // Improved image URL extraction
       let imageUrl = 'https://placehold.co/600x400?text=News+Image';
       
       // Try to extract image from content
@@ -74,16 +82,33 @@ async function parseRSSFeed(feed: { url: string, topic: string }): Promise<NewsA
         imageUrl = imgMatch[1];
       } else {
         // Try to extract image from media:content
-        const mediaContent = item.querySelector('media\\:content, content');
+        const mediaContent = item.querySelector('media\\:content, media\\:thumbnail, content, thumbnail');
         if (mediaContent && mediaContent.getAttribute('url')) {
           imageUrl = mediaContent.getAttribute('url') || imageUrl;
         }
         
         // Try to extract image from enclosure
         const enclosure = item.querySelector('enclosure');
-        if (enclosure && enclosure.getAttribute('url') && 
-            enclosure.getAttribute('type')?.startsWith('image/')) {
-          imageUrl = enclosure.getAttribute('url') || imageUrl;
+        if (enclosure && enclosure.getAttribute('url')) {
+          const type = enclosure.getAttribute('type') || '';
+          if (type.startsWith('image/') || link.endsWith('.jpg') || link.endsWith('.png') || link.endsWith('.jpeg')) {
+            imageUrl = enclosure.getAttribute('url') || imageUrl;
+          }
+        }
+      }
+      
+      // Use source-specific default images when no image is found
+      if (imageUrl === 'https://placehold.co/600x400?text=News+Image') {
+        if (source.includes('timesofindia')) {
+          imageUrl = 'https://static.toiimg.com/photo/msid-74814898/74814898.jpg'; 
+        } else if (source.includes('ndtv')) {
+          imageUrl = 'https://drop.ndtv.com/homepage/images/ndtvlogo23march.png';
+        } else if (source.includes('hindustantimes')) {
+          imageUrl = 'https://www.hindustantimes.com/images/app-images/ht-logo.png';
+        } else if (source.includes('indianexpress')) {
+          imageUrl = 'https://images.indianexpress.com/2022/03/indian-express-logo.jpg';
+        } else if (source.includes('economictimes')) {
+          imageUrl = 'https://img.etimg.com/photo/msid-74451948,quality-100/et-logo.jpg';
         }
       }
       

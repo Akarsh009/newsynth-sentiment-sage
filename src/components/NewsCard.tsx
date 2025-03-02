@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { Calendar, Globe } from "lucide-react";
 import { NewsArticle } from "@/utils/mockData";
 import SentimentTag from "./SentimentTag";
@@ -10,6 +11,8 @@ interface NewsCardProps {
 }
 
 const NewsCard = ({ article, className }: NewsCardProps) => {
+  const [imageError, setImageError] = useState(false);
+  
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -20,6 +23,11 @@ const NewsCard = ({ article, className }: NewsCardProps) => {
     }).format(date);
   };
 
+  // Generate a placeholder image based on topic
+  const getPlaceholderImage = () => {
+    return `https://placehold.co/600x400?text=${article.topic.charAt(0).toUpperCase() + article.topic.slice(1)}+News`;
+  };
+
   return (
     <div className={cn(
       "news-card rounded-xl overflow-hidden bg-card border hover:shadow-lg transition-all duration-300",
@@ -27,12 +35,22 @@ const NewsCard = ({ article, className }: NewsCardProps) => {
     )}>
       <div className="relative h-48 overflow-hidden">
         <div className="bg-muted h-full w-full absolute inset-0"></div>
-        <img
-          src={article.imageUrl}
-          alt={article.title}
-          className="w-full h-full object-cover absolute inset-0"
-          loading="lazy"
-        />
+        {!imageError ? (
+          <img
+            src={article.imageUrl}
+            alt={article.title}
+            className="w-full h-full object-cover absolute inset-0"
+            loading="lazy"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <img
+            src={getPlaceholderImage()}
+            alt={article.title}
+            className="w-full h-full object-cover absolute inset-0"
+            loading="lazy"
+          />
+        )}
         <div className="absolute top-3 left-3">
           <div className="px-2.5 py-1 rounded-full bg-primary/80 backdrop-blur-sm text-xs font-medium text-primary-foreground">
             {article.topic.charAt(0).toUpperCase() + article.topic.slice(1)}

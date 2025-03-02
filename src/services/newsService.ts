@@ -27,8 +27,8 @@ interface NewsApiResponse {
 // Topics to fetch news for - make sure these are lowercase
 const TOPICS = ["business", "technology", "health", "science", "sports", "entertainment", "politics", "general"];
 
-// NewsAPI key and endpoint (you would need to replace this with a real API key)
-const NEWS_API_KEY = "YOUR_API_KEY";
+// NewsAPI key and endpoint
+const NEWS_API_KEY = "1e8fa1048e3c4ff9b1edf1aff8365c04";
 const NEWS_API_ENDPOINT = "https://newsapi.org/v2/top-headlines";
 
 /**

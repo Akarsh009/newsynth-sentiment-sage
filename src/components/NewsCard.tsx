@@ -11,8 +11,6 @@ interface NewsCardProps {
 }
 
 const NewsCard = ({ article, className }: NewsCardProps) => {
-  const [imageLoaded, setImageLoaded] = useState(false);
-  
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -29,18 +27,12 @@ const NewsCard = ({ article, className }: NewsCardProps) => {
       className
     )}>
       <div className="relative h-48 overflow-hidden">
-        <div className={cn(
-          "absolute inset-0 bg-muted",
-          imageLoaded ? "opacity-0" : "opacity-100"
-        )}></div>
+        <div className="bg-muted h-full w-full"></div>
         <img
           src={article.imageUrl}
           alt={article.title}
-          className={cn(
-            "w-full h-full object-cover transition-opacity duration-300",
-            imageLoaded ? "opacity-100" : "opacity-0"
-          )}
-          onLoad={() => setImageLoaded(true)}
+          className="w-full h-full object-cover absolute inset-0"
+          loading="lazy"
         />
         <div className="absolute top-3 left-3">
           <div className="px-2.5 py-1 rounded-full bg-primary/80 backdrop-blur-sm text-xs font-medium text-primary-foreground">

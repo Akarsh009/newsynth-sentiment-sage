@@ -24,8 +24,8 @@ interface NewsApiResponse {
   articles: NewsApiArticle[];
 }
 
-// Topics to fetch news for
-const TOPICS = ["business", "technology", "health", "science", "sports", "entertainment", "general"];
+// Topics to fetch news for - make sure these are lowercase
+const TOPICS = ["business", "technology", "health", "science", "sports", "entertainment", "politics", "general"];
 
 /**
  * Fetch news for all topics and convert to our format
@@ -37,12 +37,18 @@ export async function fetchAllNews(): Promise<NewsArticle[]> {
     const scrapedArticles = await fetchScrapedNews();
     console.log(`Fetched ${scrapedArticles.length} articles from scraping`);
     
-    if (scrapedArticles.length === 0) {
+    // Ensure all topics are lowercase for consistent filtering
+    const processedArticles = scrapedArticles.map(article => ({
+      ...article,
+      topic: article.topic.toLowerCase()
+    }));
+    
+    if (processedArticles.length === 0) {
       console.log("No scraped articles found, using mock data");
       return getMockArticles();
     }
     
-    return scrapedArticles;
+    return processedArticles;
   } catch (error) {
     console.error("Error fetching news:", error);
     // Return mock data as fallback
@@ -54,6 +60,7 @@ export async function fetchAllNews(): Promise<NewsArticle[]> {
  * Generate mock articles as fallback
  */
 function getMockArticles(): NewsArticle[] {
+  // Make sure these topics match the ones used in filtering (all lowercase)
   const topics = ["technology", "business", "science", "politics", "sports", "health"];
   const sentiments: SentimentType[] = ["positive", "neutral", "negative"];
   
@@ -71,7 +78,7 @@ function getMockArticles(): NewsArticle[] {
       url: "#",
       imageUrl: `https://placehold.co/600x400?text=${topic}+News`,
       publishedAt: new Date().toISOString(),
-      topic,
+      topic, // already lowercase
       sentiment,
       sentimentScore: sentiment === 'positive' ? 0.8 : sentiment === 'negative' ? 0.2 : 0.5
     };

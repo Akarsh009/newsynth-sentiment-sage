@@ -27,7 +27,7 @@ const Index = () => {
   // Calculate topic sentiment stats
   const calculateTopicSentiments = useCallback((articlesData: NewsArticle[]): TopicSentiment => {
     const filteredByTopic = selectedTopic 
-      ? articlesData.filter(a => a.topic === selectedTopic)
+      ? articlesData.filter(a => a.topic.toLowerCase() === selectedTopic.toLowerCase())
       : articlesData;
     
     return {
@@ -110,9 +110,11 @@ const Index = () => {
     
     let filtered = [...articles];
     
-    // Filter by topic
+    // Filter by topic - ensure case-insensitive comparison
     if (selectedTopic) {
-      filtered = filtered.filter((article) => article.topic === selectedTopic);
+      filtered = filtered.filter((article) => 
+        article.topic.toLowerCase() === selectedTopic.toLowerCase()
+      );
     }
     
     // Filter by sentiment

@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface TopicFilterProps {
@@ -34,15 +33,15 @@ const TopicFilter = ({
       {topics.map((topic) => (
         <button
           key={topic}
-          onClick={() => onSelectTopic(topic)}
+          onClick={() => onSelectTopic(topic.toLowerCase())}
           className={cn(
             "px-4 py-1.5 rounded-full text-sm font-medium transition-all",
             "border hover:bg-secondary",
-            selectedTopic === topic
+            selectedTopic === topic.toLowerCase()
               ? "bg-primary text-primary-foreground border-primary"
               : "bg-transparent text-muted-foreground border-border"
           )}
-          aria-pressed={selectedTopic === topic}
+          aria-pressed={selectedTopic === topic.toLowerCase()}
         >
           {topic.charAt(0).toUpperCase() + topic.slice(1)}
         </button>
